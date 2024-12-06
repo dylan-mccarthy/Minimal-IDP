@@ -1,0 +1,6 @@
+@PlatformAPI_HostAddress = http://localhost:5264
+
+GET {{PlatformAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
