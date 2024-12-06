@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualBasic;
 using PlatformAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,24 +10,67 @@ builder.Services.AddOpenApi();
 
 var config = builder.Configuration;
 
-builder.Services.AddHttpClient<GitHubService>(client => {
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyMethod()
+                   .AllowAnyHeader();
+        });
+});
+
+
+builder.Services.AddHttpClient("GitHubClient", client => {
     client.BaseAddress = new Uri("https://api.github.com");
     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.baptiste-preview+json");
     client.DefaultRequestHeaders.Add("User-Agent", "PlatformAPI");
 });
 
+builder.Services.AddHttpClient<AzureAdService>("AzureAdClient");
+
 var org = config["GitHub:Organization"];
 var templateRepo = config["GitHub:TemplateRepo"];
 var pat = config["GitHub:PersonalAccessToken"];
+
+var tenantId = config["AzureAd:TenantId"];
+var subscriptionId = config["AzureAd:SubscriptionId"];
+
+var graphAuthority = config["Graph:Authority"];
+var graphClientId = config["Graph:ClientId"];
+var graphClientSecret = config["Graph:ClientSecret"];
 
 if(string.IsNullOrEmpty(org) || string.IsNullOrEmpty(templateRepo) || string.IsNullOrEmpty(pat))
 {
     throw new InvalidOperationException("GitHub configuration is missing");
 }
 
+if(string.IsNullOrEmpty(tenantId) || string.IsNullOrEmpty(subscriptionId))
+{
+    throw new InvalidOperationException("Azure AD configuration is missing");
+}
+
+if(string.IsNullOrEmpty(graphAuthority) || string.IsNullOrEmpty(graphClientId) || string.IsNullOrEmpty(graphClientSecret))
+{
+    throw new InvalidOperationException("Graph configuration is missing");
+}
+
 builder.Services.AddSingleton<GitHubService>(sp => 
-    new GitHubService(sp.GetRequiredService<HttpClient>(), org, templateRepo, pat)
-);
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient("GitHubClient");
+    return new GitHubService(httpClient, org, templateRepo, pat);
+});
+
+builder.Services.AddSingleton<AzureAdService>(sp => 
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient("AzureAdClient");
+    return new AzureAdService(httpClient, tenantId);
+});
+
+
 
 var app = builder.Build();
 
@@ -35,12 +80,42 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
-app.MapPost("/api/apps", async (AppCreationRequest request, GitHubService gitHubService) =>
+app.MapPost("/api/apps", async ([FromBody]AppCreationRequest request, GitHubService gitHubService, AzureAdService azureAdService) =>
 {
-    var repoUrl = await gitHubService.CreateRepositoryFromTemplateAsync(request.AppName);
-    return repoUrl is not null
-        ? Results.Created(repoUrl, new AppCreationResponse(repoUrl, "Repository created successfully"))
-        : Results.BadRequest("Failed to create repository from template");
+
+    try{
+        if(string.IsNullOrWhiteSpace(request.AppName))
+        {
+            return Results.BadRequest("App name is required");
+        }
+
+        var sanitaisedAppName = request.AppName.Trim().Replace(" ", "-").ToLowerInvariant();
+
+        var repoUrl = await gitHubService.CreateRepositoryFromTemplateAsync(sanitaisedAppName);
+        var repoFullName = $"{org}/{sanitaisedAppName}";
+
+        var accessToken = await azureAdService.GetAccessTokenAsync(graphAuthority, graphClientId, graphClientSecret, new[] { "https://graph.microsoft.com/.default" });
+
+        var appResp = await azureAdService.CreateAzureAdAppAsync(accessToken, sanitaisedAppName);
+        var azureAppClientId = appResp.appId;
+
+        await azureAdService.AddFederatedCredentialsAsync(accessToken, appResp.id, repoFullName);
+
+        await gitHubService.SetRepoSecretAsync(sanitaisedAppName, "AZURE_TEANT_ID", tenantId);
+        await gitHubService.SetRepoSecretAsync(sanitaisedAppName, "AZURE_SUBSCRIPTION_ID", subscriptionId);
+        await gitHubService.SetRepoSecretAsync(sanitaisedAppName, "AZURE_CLIENT_ID", azureAppClientId);
+
+        return Results.Ok(new AppCreationResponse(repoUrl!, "created", azureAppClientId));
+
+    }
+    catch(Exception ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
 });	
+
+app.UseCors("AllowAll");
+app.UseRouting();
+app.Run();

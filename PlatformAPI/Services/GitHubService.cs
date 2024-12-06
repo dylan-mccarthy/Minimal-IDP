@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace PlatformAPI.Services
 {
@@ -25,7 +27,6 @@ namespace PlatformAPI.Services
             {
                 owner = _org,
                 name = newRepoName,
-                decription = "This is a new repository created from a template",
                 include_all_branches = false,
                 @private = false
             };
@@ -42,16 +43,55 @@ namespace PlatformAPI.Services
             return responseJson?.Owner?.HtmlUrl;
 
         }
-     private class Owner
-    {
-        [JsonPropertyName("html_url")]
-        public string? HtmlUrl { get; set; }
-    }
+        private class Owner
+        {
+            [JsonPropertyName("html_url")]
+            public string? HtmlUrl { get; set; }
+        }
 
-    private class CreateRepoResponse
-    {
-        public Owner? Owner { get; set; }
-    }
+        private class CreateRepoResponse
+        {
+            public Owner? Owner { get; set; }
+        }
+
+        public async Task SetRepoSecretAsync(string repoName, string secretName, string secretValue)
+        {
+            var publicKey = await GetRepoPublicKeyAsync(repoName);
+            var encrypedValue = EncryptSecret(secretValue, publicKey.Key);
+
+            var url = $"repos/{_org}/{repoName}/actions/secrets/{secretName}";
+            var body = new 
+            {
+                encrypted_value = encrypedValue,
+                key_id = publicKey.KeyId
+            };
+
+            var res = await _httpClient.PutAsJsonAsync(url, body);
+            if(!res.IsSuccessStatusCode)
+            {
+                var errorContent = await res.Content.ReadAsStringAsync();
+                throw new Exception($"Failed to set repository secret: {errorContent}");
+            }
+        }
+
+        private string EncryptSecret(string secretValue, string publicKey)
+        {
+            // Encrypt secretValue with publicKey
+            var rsa = RSA.Create();
+            rsa.ImportRSAPublicKey(Convert.FromBase64String(publicKey), out _);
+            var encryptedBytes = rsa.Encrypt(Encoding.UTF8.GetBytes(secretValue), RSAEncryptionPadding.OaepSHA256);
+            return Convert.ToBase64String(encryptedBytes);
+        }
+
+        private async Task<(string KeyId, string Key)> GetRepoPublicKeyAsync(string repoName)
+        {
+            var res = await _httpClient.GetAsync($"repos/{_org}/{repoName}/actions/secrets/public-key");
+            res.EnsureSuccessStatusCode();
+            var json = await res.Content.ReadFromJsonAsync<JsonElement>();
+            var keyId = json.GetProperty("key_id").GetString();
+            var key = json.GetProperty("key").GetString();
+            return (keyId!, key!);
+        }
     }
 
 
