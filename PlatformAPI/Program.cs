@@ -107,7 +107,7 @@ app.MapPost("/api/apps", async ([FromBody]AppCreationRequest request, GitHubServ
         await gitHubService.SetRepoSecretAsync(sanitaisedAppName, "AZURE_SUBSCRIPTION_ID", subscriptionId);
         await gitHubService.SetRepoSecretAsync(sanitaisedAppName, "AZURE_CLIENT_ID", azureAppClientId);
 
-        return Results.Ok(new AppCreationResponse(repoUrl!, "created", azureAppClientId));
+        return Results.Ok(new AppCreationResponse($"https://github.com/{org}/{repoUrl}"!, "created", azureAppClientId));
 
     }
     catch(Exception ex)
