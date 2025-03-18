@@ -3,75 +3,39 @@ using System.Text.Json.Serialization;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Octokit;
 
 namespace PlatformAPI.Services
 {
     public class GitHubService
     {
-        private readonly HttpClient _httpClient;
         private readonly string _org;
         private readonly string _templateRepo;
+        private readonly GitHubAppAuthService _gitHubAppAuthService;
 
-        public GitHubService(HttpClient httpClient, string org, string templateRepo, string pat)
+        public GitHubService(HttpClient httpClient, string org, string templateRepo, GitHubAppAuthService gitHubAppAuthService)
         {
-            _httpClient = httpClient;
             _org = org;
             _templateRepo = templateRepo;
-
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {pat}");
+            _gitHubAppAuthService = gitHubAppAuthService;
         }
 
         public async Task<string?> CreateRepositoryFromTemplateAsync(string newRepoName)
         {
-            var requestBody = new
+            var client = await _gitHubAppAuthService.CreateGitHubClientAsync();
+            var result = await client.Repository.Generate(_org, _templateRepo, new NewRepositoryFromTemplate(newRepoName));
+            return result?.CloneUrl;
+        }
+
+        public async void SetRepoSecretAsync(string repoName, string secretName, string secretValue)
+        {
+            var client = await _gitHubAppAuthService.CreateGitHubClientAsync();
+            var secret = new UpsertRepositorySecret()
             {
-                owner = _org,
-                name = newRepoName,
-                include_all_branches = false,
-                @private = false
+                EncryptedValue = EncryptSecret(secretValue, (await GetRepoPublicKeyAsync(repoName)).Key),
+                KeyId = (await GetRepoPublicKeyAsync(repoName)).KeyId
             };
-
-            var response = await _httpClient.PostAsJsonAsync($"repos/{_org}/{_templateRepo}/generate", requestBody);
-
-            if(!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Failed to create repository from template: {errorContent}");
-            }
-
-            var responseJson = await response.Content.ReadFromJsonAsync<CreateRepoResponse>();
-            return responseJson?.Owner?.HtmlUrl;
-
-        }
-        private class Owner
-        {
-            [JsonPropertyName("html_url")]
-            public string? HtmlUrl { get; set; }
-        }
-
-        private class CreateRepoResponse
-        {
-            public Owner? Owner { get; set; }
-        }
-
-        public async Task SetRepoSecretAsync(string repoName, string secretName, string secretValue)
-        {
-            var publicKey = await GetRepoPublicKeyAsync(repoName);
-            var encrypedValue = EncryptSecret(secretValue, publicKey.Key);
-
-            var url = $"repos/{_org}/{repoName}/actions/secrets/{secretName}";
-            var body = new 
-            {
-                encrypted_value = encrypedValue,
-                key_id = publicKey.KeyId
-            };
-
-            var res = await _httpClient.PutAsJsonAsync(url, body);
-            if(!res.IsSuccessStatusCode)
-            {
-                var errorContent = await res.Content.ReadAsStringAsync();
-                throw new Exception($"Failed to set repository secret: {errorContent}");
-            }
+            await client.Repository.Actions.Secrets.CreateOrUpdate(_org, repoName, secretName, secret);
         }
 
         private string EncryptSecret(string secretValue, string publicKey)
@@ -85,11 +49,10 @@ namespace PlatformAPI.Services
 
         private async Task<(string KeyId, string Key)> GetRepoPublicKeyAsync(string repoName)
         {
-            var res = await _httpClient.GetAsync($"repos/{_org}/{repoName}/actions/secrets/public-key");
-            res.EnsureSuccessStatusCode();
-            var json = await res.Content.ReadFromJsonAsync<JsonElement>();
-            var keyId = json.GetProperty("key_id").GetString();
-            var key = json.GetProperty("key").GetString();
+            var client = await _gitHubAppAuthService.CreateGitHubClientAsync();
+            var result = await client.Repository.Actions.Secrets.GetPublicKey(_org, repoName);
+            var keyId = result.KeyId;
+            var key = result.Key;
             return (keyId!, key!);
         }
     }
