@@ -67,4 +67,18 @@ public class AzureAdService
         
     }
 
+    // Delete an Azure AD application by its object ID
+    public async Task DeleteAzureAdAppAsync(string appObjectId)
+    {
+        try 
+        {
+            await _graphClient.Applications[appObjectId].DeleteAsync();
+            return;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error deleting Azure AD application: {e.Message}");
+            throw new InvalidOperationException($"Failed to delete Azure AD application: {e.Message}");
+        }
+    }
 }

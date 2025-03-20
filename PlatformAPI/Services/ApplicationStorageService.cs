@@ -44,5 +44,9 @@ public class ApplicationStorageService
         return apps;
     }
 
-
+    // Delete an application from storage
+    public async Task DeleteApplicationAsync(string appName)
+    {
+        await _tableClient.DeleteEntityAsync("Application", appName.ToLowerInvariant());
+    }
 }

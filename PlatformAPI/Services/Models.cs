@@ -1,7 +1,7 @@
 namespace PlatformAPI.Services;
 
 public record AppCreationRequest(string AppName, string Stack);
-public record AppCreationResponse(string RepositoryUrl, string Status, string AzureAppClientId);
+public record AppCreationResponse(string RepositoryUrl, string Status);
 
 public record AppRegistrationRequest(string AppName, string repositoryUrl);
 public record AppRegistrationResponse(string AppId, string TenantId, string SubscriptionId, string ClientId);

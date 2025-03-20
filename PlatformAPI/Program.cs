@@ -121,7 +121,7 @@ app.MapPost("/api/apps", async ([FromBody]AppCreationRequest request, GitHubServ
 
         await applicationStorageService.AddApplicationAsync(application);
 
-        return Results.Ok(new AppCreationResponse($"https://github.com/{org}/{repoUrl}"!, "created", null));
+        return Results.Ok(new AppCreationResponse(repoUrl, "created"));
 
     }
     catch(Exception ex)
@@ -192,6 +192,34 @@ app.MapGet("/api/apps/{appName}", async ([FromRoute]string appName, ApplicationS
 {
     var app = await applicationStorageService.GetApplicationAsync(appName);
     return app != null ? Results.Ok(app) : Results.NotFound();
+});
+
+// Add DELETE endpoint for application removal
+app.MapDelete("/api/apps/{appName}", async ([FromRoute]string appName, ApplicationStorageService applicationStorageService, AzureAdService azureAdService) =>
+{
+    try
+    {
+        var application = await applicationStorageService.GetApplicationAsync(appName);
+        if (application == null)
+        {
+            return Results.NotFound($"Application '{appName}' not found");
+        }
+
+        // If there's an Azure application ID, try to delete the app registration
+        if (!string.IsNullOrEmpty(application.AzureAppClientId))
+        {
+            await azureAdService.DeleteAzureAdAppAsync(application.AzureAppClientId);
+        }
+
+        // Delete the application from our storage
+        await applicationStorageService.DeleteApplicationAsync(appName);
+
+        return Results.Ok(new { status = "deleted", message = $"Application '{appName}' successfully deleted" });
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
 });
 
 app.UseCors("AllowAll");
