@@ -1,9 +1,10 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Net.Http.Json;
-using System.Security.Cryptography;
+//using System.Security.Cryptography;
 using System.Text.Json;
 using Octokit;
+using Sodium;
 
 namespace PlatformAPI.Services
 {
@@ -13,7 +14,7 @@ namespace PlatformAPI.Services
         private readonly string _templateRepo;
         private readonly GitHubAppAuthService _gitHubAppAuthService;
 
-        public GitHubService(HttpClient httpClient, string org, string templateRepo, GitHubAppAuthService gitHubAppAuthService)
+        public GitHubService(string org, string templateRepo, GitHubAppAuthService gitHubAppAuthService)
         {
             _org = org;
             _templateRepo = templateRepo;
@@ -22,34 +23,66 @@ namespace PlatformAPI.Services
 
         public async Task<string?> CreateRepositoryFromTemplateAsync(string newRepoName)
         {
-            var client = await _gitHubAppAuthService.CreateGitHubClientAsync();
-            var result = await client.Repository.Generate(_org, _templateRepo, new NewRepositoryFromTemplate(newRepoName));
-            return result?.CloneUrl;
+            try{
+                var client = await _gitHubAppAuthService.CreateGitHubClientAsync();
+                if(client == null)
+                {
+                    return null;
+                }
+                var newRepo = new NewRepositoryFromTemplate(newRepoName);
+                newRepo.Owner = _org;
+                newRepo.Description = "A new repository created from a template";
+                var result = await client.Repository.Generate(_org, _templateRepo, newRepo);
+                return result?.CloneUrl;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return null;
+            }
+
         }
 
-        public async void SetRepoSecretAsync(string repoName, string secretName, string secretValue)
+        public async Task SetRepoSecretAsync(string repoName, string secretName, string secretValue)
         {
             var client = await _gitHubAppAuthService.CreateGitHubClientAsync();
+            if(client == null)
+            {
+                throw new Exception("Failed to create GitHub client");
+            }
+            
+            // Get the public key only once
+            var publicKeyData = await GetRepoPublicKeyAsync(repoName);
+            if (publicKeyData.KeyId == null || publicKeyData.Key == null)
+            {
+                throw new Exception("Failed to get public key");
+            }
+            
             var secret = new UpsertRepositorySecret()
             {
-                EncryptedValue = EncryptSecret(secretValue, (await GetRepoPublicKeyAsync(repoName)).Key),
-                KeyId = (await GetRepoPublicKeyAsync(repoName)).KeyId
+                EncryptedValue = EncryptSecret(secretValue, publicKeyData.Key),
+                KeyId = publicKeyData.KeyId
             };
+            
             await client.Repository.Actions.Secrets.CreateOrUpdate(_org, repoName, secretName, secret);
         }
 
         private string EncryptSecret(string secretValue, string publicKey)
         {
-            // Encrypt secretValue with publicKey
-            var rsa = RSA.Create();
-            rsa.ImportRSAPublicKey(Convert.FromBase64String(publicKey), out _);
-            var encryptedBytes = rsa.Encrypt(Encoding.UTF8.GetBytes(secretValue), RSAEncryptionPadding.OaepSHA256);
-            return Convert.ToBase64String(encryptedBytes);
+            var binkey = Convert.FromBase64String(publicKey);
+            var binsecret = System.Text.Encoding.UTF8.GetBytes(secretValue);
+
+            var sealedPublicKeyBox = Sodium.SealedPublicKeyBox.Create(binsecret, binkey);
+            return Convert.ToBase64String(sealedPublicKeyBox);
         }
 
         private async Task<(string KeyId, string Key)> GetRepoPublicKeyAsync(string repoName)
         {
             var client = await _gitHubAppAuthService.CreateGitHubClientAsync();
+            if(client == null)
+            {
+                return (null!, null!);
+            }
             var result = await client.Repository.Actions.Secrets.GetPublicKey(_org, repoName);
             var keyId = result.KeyId;
             var key = result.Key;

@@ -1,69 +1,70 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
+using Microsoft.Graph;
+using Azure.Identity;
+using Microsoft.Graph.Models;
+
 
 namespace PlatformAPI.Services;
 
 public class AzureAdService
 {
-    private readonly HttpClient _httpClient;
     private readonly string _tenantId;
+    private GraphServiceClient _graphClient;
 
-    public AzureAdService(HttpClient httpClient, string tenantId)
+    public AzureAdService(string tenantId, string authority, string clientId, string clientSecret, string[] scopes)
     {
-        _httpClient = httpClient;
         _tenantId = tenantId;
+        var clientSecretCredential = new ClientSecretCredential(_tenantId, clientId, clientSecret);
+        _graphClient = new GraphServiceClient(clientSecretCredential, scopes);
     }
 
-    public async Task<string> GetAccessTokenAsync(string authority, string clientId, string clientSecret, string[] scopes)
+    public async Task<string?> CreateAzureAdAppAsync(string displayName)
     {
-        var tokenEndpoint = $"{authority}/oauth2/v2.0/token";
-        using var req = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
-        var form = new Dictionary<string, string>
+        try{
+            var newApp = new Application
+            {
+                DisplayName = displayName,
+            };
+
+            var createdApp = await _graphClient.Applications.PostAsync(newApp);
+            return createdApp?.Id;
+        }
+        catch (Exception e)
         {
-            ["client_id"] = clientId,
-            ["scope"] = string.Join(' ', scopes),
-            ["client_secret"] = clientSecret,
-            ["grant_type"] = "client_credentials"
-        };
-        req.Content = new FormUrlEncodedContent(form);
-        var response = await _httpClient.SendAsync(req);
-        response.EnsureSuccessStatusCode();
-        var responseJson = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(responseJson);
-        return doc.RootElement.GetProperty("access_token").GetString()!;
+            Console.WriteLine(e.Message);
+            return null;
+        }
     }
 
-    public async Task<CreateApplicationResponse> CreateAzureAdAppAsync(string accessToken, string displayName)
+    public async Task AddFederatedCredentialsAsync(string appObjectId, string repoFullName)
     {
-        var requestBody = new { displayName = displayName };
-        using var req = new HttpRequestMessage(HttpMethod.Post, $"https://graph.microsoft.com/v1.0/{_tenantId}/applications");
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        req.Content = JsonContent.Create(requestBody);
+        try {
+            var requestBody = new FederatedIdentityCredential
+            {
+                Name = "GitHubActionsOIDC",
+                Issuer = "https://token.actions.githubusercontent.com",
+                Subject = $"repo:{repoFullName}:ref:refs/heads/main",
+                Audiences = new List<string>
+                {
+                    "api://AzureADTokenExchange",
+                },
+                Description = "Federated credentials for GitHub Actions OIDC"
+            };
 
-        var response = await _httpClient.SendAsync(req);
-        response.EnsureSuccessStatusCode();
-        var responseJson = await response.Content.ReadFromJsonAsync<CreateApplicationResponse>();
-        return responseJson!;
+            var result = await _graphClient.Applications[appObjectId].FederatedIdentityCredentials.PostAsync(requestBody);
+
+            if (result == null)
+            {
+                throw new InvalidOperationException("Failed to add federated credentials");
+            }
+
+            return;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            return;
+        }
+        
     }
 
-    public async Task AddFederatedCredentialsAsync(string accessToken, string appObjectId, string repoFullName)
-    {
-        var subject = $"repo:{repoFullName}:ref:refs/heads/main";
-
-        var ficRequest = new FederatedIdentityCredentialRequest(
-            name: "GitHubActionsOIDC",
-            issuer: "https://token.actions.githubusercontent.com",
-            subject: subject,
-            audiences: new[] { "api://AzureADTokenExchange" },
-            description: "Federated credentials for GitHub Actions OIDC"
-        );
-
-        using var req = new HttpRequestMessage(HttpMethod.Post, $"https://graph.microsoft.com/v1.0/applications/{appObjectId}/federatedIdentityCredentials");
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        req.Content = JsonContent.Create(ficRequest);
-
-        var res = await _httpClient.SendAsync(req);
-        res.EnsureSuccessStatusCode();
-    }
 }
