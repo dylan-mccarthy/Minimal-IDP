@@ -1,12 +1,15 @@
 # Backend API Documentation
 
 ## Overview
+
 The Minimal-IDP backend API provides services for creating, registering, and managing applications. It handles GitHub repository creation, Entra ID application registration, and repository secret management through a RESTful API built with ASP.NET Core.
 
 ## Architecture
+
 The backend is built with ASP.NET Core and integrates with Azure and GitHub services to provide a streamlined application deployment process. It uses a service-based architecture where each major functionality is encapsulated in dedicated service classes.
 
 ### Technology Stack
+
 - Language/Framework: ASP.NET Core (.NET 9.0)
 - Database: Azure Table Storage (12.10.0)
 - External Services:
@@ -20,6 +23,7 @@ The backend is built with ASP.NET Core and integrates with Azure and GitHub serv
 - API Documentation: Microsoft.AspNetCore.OpenApi (9.0.0)
 
 ### Package References
+
 ```xml
 <PackageReference Include="Azure.Data.Tables" Version="12.10.0" />
 <PackageReference Include="Azure.Identity" Version="1.13.2" />
@@ -34,9 +38,11 @@ The backend is built with ASP.NET Core and integrates with Azure and GitHub serv
 ## Core Services
 
 ### ApplicationStorageService
+
 Handles all interactions with Azure Table Storage for storing application metadata.
 
 **Key Methods:**
+
 - `AddApplicationAsync`: Creates a new application record
 - `UpdateApplicationAsync`: Updates an existing application
 - `GetApplicationAsync`: Retrieves a specific application by name
@@ -44,38 +50,47 @@ Handles all interactions with Azure Table Storage for storing application metada
 - `DeleteApplicationAsync`: Removes an application
 
 ### GitHubAppAuthService
+
 Manages GitHub App authentication using JWT tokens and installation tokens.
 
 **Key Methods:**
+
 - `GetInstallationTokenAsync`: Obtains a GitHub App installation token
 - `CreateGitHubClientAsync`: Creates an authenticated GitHub client
 
 ### GitHubService
+
 Manages GitHub repository operations including creating repositories from templates and setting repository secrets.
 
 **Key Methods:**
+
 - `CreateRepositoryFromTemplateAsync`: Creates a new repository using a template
 - `SetRepoSecretAsync`: Sets repository secrets encrypted with GitHub's public key
 - `GetRepoPublicKeyAsync`: Retrieves the public key for secret encryption
 
 ### AzureAdService
+
 Manages Azure Active Directory (Entra ID) operations including application registration and federated credentials.
 
 **Key Methods:**
+
 - `CreateAzureAdAppAsync`: Creates a new application in Entra ID
 - `AddFederatedCredentialsAsync`: Adds OIDC federated credentials for GitHub Actions
 - `DeleteAzureAdAppAsync`: Deletes an application from Entra ID
 
 ## API Design
+
 The API follows RESTful design principles with resource-based endpoints and HTTP verbs. All operations are performed on the `apps` resource.
 
 ## Base URL
-```
+
+```bash
 Development: http://localhost:5264
 Production: [Production URL to be configured]
 ```
 
 ## Configuration
+
 The API requires the following configuration settings:
 
 ```json
@@ -109,9 +124,11 @@ The API requires the following configuration settings:
 ### Resource: Applications
 
 #### GET /api/apps
+
 Retrieves a list of all applications.
 
 **Response:**
+
 ```json
 [
   {
@@ -127,16 +144,20 @@ Retrieves a list of all applications.
 ```
 
 **Status Codes:**
+
 - `200 OK`: Success
 - `500 Internal Server Error`: Server error
 
 #### GET /api/apps/{appName}
+
 Retrieves details for a specific application.
 
 **Path Parameters:**
+
 - `appName`: The application name
 
 **Response:**
+
 ```json
 {
   "rowKey": "app-name",
@@ -150,14 +171,17 @@ Retrieves details for a specific application.
 ```
 
 **Status Codes:**
+
 - `200 OK`: Success
 - `404 Not Found`: Application not found
 - `500 Internal Server Error`: Server error
 
 #### POST /api/apps
+
 Creates a new application by generating a GitHub repository from a template.
 
 **Request:**
+
 ```json
 {
   "AppName": "new-app-name",
@@ -166,6 +190,7 @@ Creates a new application by generating a GitHub repository from a template.
 ```
 
 **Response:**
+
 ```json
 {
   "repositoryUrl": "https://github.com/org/new-app-name",
@@ -174,22 +199,27 @@ Creates a new application by generating a GitHub repository from a template.
 ```
 
 **Status Codes:**
+
 - `200 OK`: Success
 - `400 Bad Request`: Invalid request parameters
 - `500 Internal Server Error`: Server error
 
 **Implementation Details:**
+
 1. Validates and sanitizes the application name
-2. Creates a new GitHub repository from the template 
+2. Creates a new GitHub repository from the template
 3. Stores the application information in Azure Table Storage
 
 #### POST /api/apps/{appName}/register
+
 Registers an application in Entra ID and creates federated OIDC credentials for GitHub Actions.
 
 **Path Parameters:**
+
 - `appName`: The application name
 
 **Request:**
+
 ```json
 {
   "AppName": "app-name",
@@ -198,6 +228,7 @@ Registers an application in Entra ID and creates federated OIDC credentials for 
 ```
 
 **Response:**
+
 ```json
 {
   "appId": "12345678-1234-1234-1234-123456789012",
@@ -208,23 +239,28 @@ Registers an application in Entra ID and creates federated OIDC credentials for 
 ```
 
 **Status Codes:**
+
 - `200 OK`: Success
 - `400 Bad Request`: Invalid request parameters
 - `404 Not Found`: Application not found
 - `500 Internal Server Error`: Server error
 
 **Implementation Details:**
+
 1. Creates a new application in Entra ID
 2. Adds federated OIDC credentials for GitHub Actions workflow
 3. Updates the application record with Entra ID details
 
 #### POST /api/apps/{appName}/secrets
+
 Adds GitHub repository secrets for Azure deployment using workload identity federation.
 
 **Path Parameters:**
+
 - `appName`: The application name
 
 **Request:**
+
 ```json
 {
   "AppName": "app-name",
@@ -235,6 +271,7 @@ Adds GitHub repository secrets for Azure deployment using workload identity fede
 ```
 
 **Response:**
+
 ```json
 {
   "status": "secrets added"
@@ -242,24 +279,29 @@ Adds GitHub repository secrets for Azure deployment using workload identity fede
 ```
 
 **Status Codes:**
+
 - `200 OK`: Success
 - `400 Bad Request`: Invalid request parameters
 - `404 Not Found`: Application or repository not found
 - `500 Internal Server Error`: Server error
 
 **Implementation Details:**
+
 1. Retrieves the repository's public key for secret encryption
 2. Encrypts each secret value with the repository's public key using libsodium
 3. Adds the encrypted secrets to the GitHub repository
 4. Updates the application record to indicate secrets have been added
 
 #### DELETE /api/apps/{appName}
+
 Deletes an application from the system, including its Entra ID registration.
 
 **Path Parameters:**
+
 - `appName`: The application name
 
 **Response:**
+
 ```json
 {
   "status": "deleted",
@@ -268,12 +310,14 @@ Deletes an application from the system, including its Entra ID registration.
 ```
 
 **Status Codes:**
+
 - `200 OK`: Success
 - `404 Not Found`: Application not found
 - `400 Bad Request`: Error during deletion
 - `500 Internal Server Error`: Server error
 
 **Implementation Details:**
+
 1. Retrieves the application details from storage
 2. If an Azure application ID exists, deletes the application from Entra ID
 3. Removes the application record from Azure Table Storage
@@ -282,6 +326,7 @@ Deletes an application from the system, including its Entra ID registration.
 ## Data Models
 
 ### ApplicationEntity
+
 Represents an application in the Azure Table Storage.
 
 ```csharp
@@ -322,6 +367,7 @@ public record AppAddSecretsResponse(string Status);
 ## Error Handling
 
 ### Error Response Format
+
 ```json
 {
   "error": "Error message describing what went wrong"
@@ -329,11 +375,13 @@ public record AppAddSecretsResponse(string Status);
 ```
 
 The API returns appropriate HTTP status codes along with error messages for failed operations:
+
 - 400 Bad Request: When the request is invalid
 - 404 Not Found: When a resource doesn't exist
 - 500 Internal Server Error: For unexpected server-side errors
 
 ## Security Considerations
+
 - The API currently does not implement user authentication
 - Service authentication is handled via:
   - GitHub App installation token for GitHub API access
@@ -343,12 +391,14 @@ The API returns appropriate HTTP status codes along with error messages for fail
   - Azure credentials are stored in Azure configuration
 
 ## Known Limitations
+
 - No built-in rate limiting
 - Limited validation on application names
 - No user-level authentication or authorization
 - No audit logging for sensitive operations
 
 ## Future Improvements
+
 - Add user authentication and authorization
 - Implement more detailed error responses with error codes
 - Add support for different repository templates based on stack selection

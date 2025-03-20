@@ -45,12 +45,14 @@ Behind the scenes, we're handling GitHub repository creation, Azure Entra ID reg
 ### Quick Start
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/your-org/Minimal-IDP.git
    cd Minimal-IDP
    ```
 
 2. **Set up the backend**
+
    ```bash
    cd PlatformAPI
    # Configure your settings (see PlatformAPI/README.md)
@@ -58,13 +60,14 @@ Behind the scenes, we're handling GitHub repository creation, Azure Entra ID reg
    ```
 
 3. **Set up the frontend**
+
    ```bash
    cd frontend
    npm install
    npm run dev
    ```
 
-4. **Open** http://localhost:5173 in your browser
+4. **Open** <http://localhost:5173> in your browser
 
 For detailed setup instructions, see our [local development guide](./docs/README.md).
 
@@ -73,6 +76,7 @@ For detailed setup instructions, see our [local development guide](./docs/README
 ### Frontend Application (SvelteKit)
 
 A clean, responsive interface for managing your applications with:
+
 - Application dashboard for at-a-glance status
 - Step-by-step creation wizard
 - Detailed management page for each application
@@ -82,6 +86,7 @@ A clean, responsive interface for managing your applications with:
 ### Backend API (.NET 9.0)
 
 A RESTful API that handles:
+
 - GitHub repository creation from templates
 - Azure Entra ID application registration
 - GitHub secrets management for CI/CD
@@ -104,10 +109,6 @@ We've created extensive documentation to help you understand and extend the syst
 - **DevOps standardization**: Ensure all applications use the same deployment patterns
 - **Multi-environment setup**: Configure applications across development, testing, and production
 
-## Contributing
-
-We welcome contributions! Please check out our [contribution guidelines](./CONTRIBUTING.md) to get started.
-
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.

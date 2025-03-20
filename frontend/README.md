@@ -17,13 +17,13 @@ A SvelteKit application for managing application deployments through a user-frie
 
 ## Setup
 
-1. Install dependencies:
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Configure the API endpoint (if different from default):
+Configure the API endpoint (if different from default):
 
 The application is configured to use `http://localhost:5264` as the API endpoint. If you need to change this, update the fetch URLs in the following files:
 
@@ -39,7 +39,7 @@ Start the development server:
 npm run dev
 ```
 
-The frontend will be available at http://localhost:5173.
+The frontend will be available at <http://localhost:5173>.
 
 ## Application Structure
 
@@ -56,5 +56,6 @@ npm run build
 ## Detailed Documentation
 
 For detailed technical documentation, see:
+
 - [Frontend Documentation](../docs/frontend/technical-documentation.md)
 - [Architecture Overview](../docs/diagrams/architecture-overview.md)

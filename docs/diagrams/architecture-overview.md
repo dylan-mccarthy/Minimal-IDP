@@ -17,14 +17,16 @@ graph TD
 ### Component Descriptions
 
 #### Frontend Application
+
 - **SvelteKit Application**: Provides the user interface for managing applications
 - **Key Pages**: Dashboard, Application Creation, Application Details
 - **Main Features**: Create repositories, register applications, manage secrets
 - **Technologies**: SvelteKit, JavaScript/TypeScript, CSS
 
 #### Backend API
+
 - **.NET Core API**: Processes requests and orchestrates operations with external services
-- **Key Services**: 
+- **Key Services**:
   - `ApplicationStorageService`: Manages application data in Azure Table Storage
   - `GitHubService`: Creates repositories and manages repository secrets
   - `AzureAdService`: Creates Entra ID applications and federated credentials
@@ -33,31 +35,27 @@ graph TD
 - **Technologies**: ASP.NET Core, C#, Azure SDK, Octokit.NET, Microsoft Graph SDK
 
 #### Database
+
 - **Azure Table Storage**: NoSQL table storage for application metadata
 - **Schema**: Simple table with application details including GitHub repository URL, registration status, and Azure identifiers
 - **Partition Strategy**: All applications stored with partition key "Application" and row key based on application name
 
 #### External Services
-- **GitHub**: 
+
+- **GitHub**:
   - Hosts application code repositories
   - Provides GitHub Actions for CI/CD
   - Used for secret storage (encrypted repository secrets)
   - Accessed via GitHub App authentication
-- **Azure Entra ID**: 
+- **Azure Entra ID**:
   - Manages application identities for Azure resources
   - Provides OIDC federation for GitHub Actions authentication
   - Enables workload identity for secure cloud deployments
-- **Azure Table Storage**: 
+- **Azure Table Storage**:
   - Stores application metadata and status
   - Provides persistence for the application lifecycle
 
 ## Data Flow Diagrams
-
-### Authentication Flow
-[Insert authentication flow diagram]
-
-### Main Business Process Flows
-[Insert key business process flow diagrams]
 
 ### Application Creation Flow
 
@@ -158,14 +156,10 @@ graph TD
     E -->|Interacts with| H[GitHub API]
 ```
 
-## Network Architecture
-[Insert network architecture diagram if applicable]
-
----
-
 ## Diagram Creation Guidelines
 
 ### Tools for Creating Diagrams
+
 - [Draw.io](https://app.diagrams.net/) (free)
 - [Lucidchart](https://www.lucidchart.com/)
 - [Mermaid](https://mermaid-js.github.io/mermaid/#/) (for code-based diagrams)

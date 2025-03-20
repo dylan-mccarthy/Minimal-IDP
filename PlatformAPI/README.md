@@ -63,7 +63,7 @@ dotnet build
 dotnet run
 ```
 
-The API will be available at http://localhost:5264.
+The API will be available at <http://localhost:5264>.
 
 ## API Endpoints
 
@@ -77,5 +77,6 @@ The API will be available at http://localhost:5264.
 ## Detailed Documentation
 
 For detailed technical documentation, see:
+
 - [API Documentation](../docs/backend/api-documentation.md)
 - [Architecture Overview](../docs/diagrams/architecture-overview.md)

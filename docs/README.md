@@ -5,12 +5,15 @@ This directory contains comprehensive technical documentation for both the front
 ## Documentation Structure
 
 ### Frontend Documentation
+
 - [Technical Documentation](./frontend/technical-documentation.md) - Detailed technical documentation of the frontend application
 
 ### Backend Documentation
+
 - [API Documentation](./backend/api-documentation.md) - Comprehensive documentation of the backend API
 
 ### Architecture and Design
+
 - [Architecture Diagrams](./diagrams/architecture-overview.md) - System architecture and data flow diagrams
 
 ## How to Use This Documentation
@@ -85,7 +88,7 @@ dotnet build
 dotnet run
 ```
 
-The API will be available at: http://localhost:5264
+The API will be available at: <http://localhost:5264>
 
 #### Start the Frontend Development Server
 
@@ -95,13 +98,13 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at: http://localhost:5173 (or another port if 5173 is in use)
+The frontend will be available at: <http://localhost:5173> (or another port if 5173 is in use)
 
 ### Testing the Applications Together
 
 1. Make sure both the backend API and frontend servers are running simultaneously
-2. Open a browser and navigate to http://localhost:5173
-3. The frontend should connect to the backend API at http://localhost:5264
+2. Open a browser and navigate to <http://localhost:5173>
+3. The frontend should connect to the backend API at <http://localhost:5264>
 4. You can now test the full application workflow:
    - Create a new application
    - Register the application in Entra ID
@@ -110,16 +113,21 @@ The frontend will be available at: http://localhost:5173 (or another port if 517
 ### Common Issues and Troubleshooting
 
 #### CORS Issues
+
 If you encounter CORS errors in the browser console, ensure the backend API has CORS properly configured. The current implementation includes a "AllowAll" CORS policy for development.
 
 #### GitHub App Authentication
+
 If GitHub API calls fail, verify your GitHub App private key is correctly formatted and accessible at the path specified in the configuration.
 
 #### Azure AD / Graph API Issues
+
 If Azure AD operations fail, check that the Graph API credentials have sufficient permissions (Application.ReadWrite.All) and that the tenant ID is correct.
 
 #### Port Conflicts
+
 If either application fails to start due to port conflicts, you can change the ports:
+
 - For the API: Edit `Properties/launchSettings.json`
 - For the frontend: Edit the `vite.config.js` file
 
