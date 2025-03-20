@@ -1,38 +1,60 @@
-# sv
+# Minimal-IDP Frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A SvelteKit application for managing application deployments through a user-friendly interface. This application works with the Minimal-IDP Platform API to create GitHub repositories, register applications in Azure Entra ID, and configure repository secrets.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Dashboard view of all applications
+- Step-by-step application creation wizard
+- Detailed application management page
+- Status indicators for deployment progress
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) (LTS version recommended)
+- [npm](https://www.npmjs.com/) (comes with Node.js)
+- Backend API running locally or at a configured endpoint
+
+## Setup
+
+1. Install dependencies:
 
 ```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+npm install
 ```
 
-## Developing
+2. Configure the API endpoint (if different from default):
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+The application is configured to use `http://localhost:5264` as the API endpoint. If you need to change this, update the fetch URLs in the following files:
+
+- `src/routes/+page.svelte`
+- `src/routes/create/+page.svelte`
+- `src/routes/app/[appName]/+page.svelte`
+
+## Running the Application
+
+Start the development server:
 
 ```bash
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+The frontend will be available at http://localhost:5173.
 
-To create a production version of your app:
+## Application Structure
+
+- `/` - Applications dashboard
+- `/create` - Create new application
+- `/app/[appName]` - Application details and management
+
+## Building for Production
 
 ```bash
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+## Detailed Documentation
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+For detailed technical documentation, see:
+- [Frontend Documentation](../docs/frontend/technical-documentation.md)
+- [Architecture Overview](../docs/diagrams/architecture-overview.md)
