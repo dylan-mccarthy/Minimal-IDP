@@ -24,7 +24,7 @@ Setting up a new cloud application traditionally involves multiple manual steps 
 
 ## How It Works
 
-![System Overview](./docs/images/system-overview.png)
+[System Overview]
 
 1. **Choose your tech stack** (.NET, Node.js, or Go)
 2. **Name your application**
