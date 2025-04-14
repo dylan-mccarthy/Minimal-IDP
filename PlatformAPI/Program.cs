@@ -222,6 +222,13 @@ app.MapDelete("/api/apps/{appName}", async ([FromRoute]string appName, Applicati
     }
 });
 
+// Add a new endpoint to generate the report
+app.MapGet("/api/apps/report", async (ApplicationStorageService applicationStorageService) =>
+{
+    var report = await applicationStorageService.GetApplicationsReportAsync();
+    return Results.Ok(report);
+});
+
 app.UseCors("AllowAll");
 app.UseRouting();
 app.Run();

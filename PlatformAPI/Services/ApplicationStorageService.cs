@@ -49,4 +49,29 @@ public class ApplicationStorageService
     {
         await _tableClient.DeleteEntityAsync("Application", appName.ToLowerInvariant());
     }
+
+    // New method to fetch active applications and calculate their age
+    public async Task<IEnumerable<ApplicationReport>> GetApplicationsReportAsync()
+    {
+        var apps = await GetApplicationsAsync();
+        var report = new List<ApplicationReport>();
+
+        foreach (var app in apps)
+        {
+            var age = (DateTimeOffset.UtcNow - app.CreatedAt).Days;
+            report.Add(new ApplicationReport
+            {
+                AppName = app.AppName,
+                Age = age
+            });
+        }
+
+        return report;
+    }
+}
+
+public class ApplicationReport
+{
+    public string AppName { get; set; }
+    public int Age { get; set; }
 }
