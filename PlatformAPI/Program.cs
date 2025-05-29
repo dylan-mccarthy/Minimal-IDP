@@ -6,8 +6,9 @@ using PlatformAPI.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var config = builder.Configuration;
 
@@ -87,7 +88,8 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 //app.UseHttpsRedirection();
@@ -192,6 +194,43 @@ app.MapGet("/api/apps/{appName}", async ([FromRoute]string appName, ApplicationS
 {
     var app = await applicationStorageService.GetApplicationAsync(appName);
     return app != null ? Results.Ok(app) : Results.NotFound();
+});
+
+app.MapGet("/api/apps/report", async (ApplicationStorageService applicationStorageService) =>
+{
+    var apps = await applicationStorageService.GetApplicationsAsync();
+    var now = DateTimeOffset.UtcNow;
+    
+    var reportItems = apps.Select(app =>
+    {
+        var age = now - app.CreatedAt;
+        var ageDays = (int)age.TotalDays;
+        var ageString = ageDays switch
+        {
+            0 => $"{(int)age.TotalHours} hours",
+            1 => "1 day",
+            _ => $"{ageDays} days"
+        };
+        
+        return new AppReportItem(
+            AppName: app.AppName ?? app.RowKey,
+            RepositoryUrl: app.RepositoryUrl ?? "",
+            IsRegistered: app.IsRegistered,
+            SecretsAdded: app.SecretsAdded,
+            AzureAppClientId: app.AzureAppClientId ?? "",
+            CreatedAt: app.CreatedAt,
+            Age: ageString,
+            AgeDays: ageDays
+        );
+    }).OrderBy(item => item.CreatedAt);
+    
+    var response = new AppReportResponse(
+        Applications: reportItems,
+        TotalCount: reportItems.Count(),
+        GeneratedAt: now
+    );
+    
+    return Results.Ok(response);
 });
 
 // Add DELETE endpoint for application removal
