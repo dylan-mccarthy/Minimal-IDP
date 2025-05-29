@@ -196,6 +196,43 @@ app.MapGet("/api/apps/{appName}", async ([FromRoute]string appName, ApplicationS
     return app != null ? Results.Ok(app) : Results.NotFound();
 });
 
+app.MapGet("/api/apps/report", async (ApplicationStorageService applicationStorageService) =>
+{
+    var apps = await applicationStorageService.GetApplicationsAsync();
+    var now = DateTimeOffset.UtcNow;
+    
+    var reportItems = apps.Select(app =>
+    {
+        var age = now - app.CreatedAt;
+        var ageDays = (int)age.TotalDays;
+        var ageString = ageDays switch
+        {
+            0 => $"{(int)age.TotalHours} hours",
+            1 => "1 day",
+            _ => $"{ageDays} days"
+        };
+        
+        return new AppReportItem(
+            AppName: app.AppName ?? app.RowKey,
+            RepositoryUrl: app.RepositoryUrl ?? "",
+            IsRegistered: app.IsRegistered,
+            SecretsAdded: app.SecretsAdded,
+            AzureAppClientId: app.AzureAppClientId ?? "",
+            CreatedAt: app.CreatedAt,
+            Age: ageString,
+            AgeDays: ageDays
+        );
+    }).OrderBy(item => item.CreatedAt);
+    
+    var response = new AppReportResponse(
+        Applications: reportItems,
+        TotalCount: reportItems.Count(),
+        GeneratedAt: now
+    );
+    
+    return Results.Ok(response);
+});
+
 // Add DELETE endpoint for application removal
 app.MapDelete("/api/apps/{appName}", async ([FromRoute]string appName, ApplicationStorageService applicationStorageService, AzureAdService azureAdService) =>
 {

@@ -4,3 +4,15 @@ GET {{PlatformAPI_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+# Get all applications
+GET {{PlatformAPI_HostAddress}}/api/apps
+Accept: application/json
+
+###
+
+# Get application report with age information
+GET {{PlatformAPI_HostAddress}}/api/apps/report
+Accept: application/json
+
+###

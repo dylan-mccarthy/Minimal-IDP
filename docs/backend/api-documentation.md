@@ -176,6 +176,44 @@ Retrieves details for a specific application.
 - `404 Not Found`: Application not found
 - `500 Internal Server Error`: Server error
 
+#### GET /api/apps/report
+
+Retrieves a report of all applications with their age information.
+
+**Response:**
+
+```json
+{
+  "applications": [
+    {
+      "appName": "app-name",
+      "repositoryUrl": "https://github.com/org/app-name",
+      "isRegistered": true,
+      "secretsAdded": true,
+      "azureAppClientId": "12345678-1234-1234-1234-123456789012",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "age": "5 days",
+      "ageDays": 5
+    }
+  ],
+  "totalCount": 1,
+  "generatedAt": "2024-01-20T14:30:00Z"
+}
+```
+
+**Status Codes:**
+
+- `200 OK`: Success
+- `500 Internal Server Error`: Server error
+
+**Implementation Details:**
+
+1. Retrieves all applications from storage
+2. Calculates age based on the difference between current time and `createdAt` timestamp
+3. Formats age as human-readable text (hours for same-day, days for older)
+4. Orders applications by creation date (oldest first)
+5. Includes summary information (total count, report generation time)
+
 #### POST /api/apps
 
 Creates a new application by generating a GitHub repository from a template.

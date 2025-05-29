@@ -69,6 +69,7 @@ The API will be available at <http://localhost:5264>.
 
 - `GET /api/apps` - List all applications
 - `GET /api/apps/{appName}` - Get application details
+- `GET /api/apps/report` - Get application report with age information
 - `POST /api/apps` - Create a new application
 - `POST /api/apps/{appName}/register` - Register in Entra ID
 - `POST /api/apps/{appName}/secrets` - Add GitHub repository secrets

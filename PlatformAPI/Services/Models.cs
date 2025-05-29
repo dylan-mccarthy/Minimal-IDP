@@ -14,3 +14,7 @@ public record CreateApplicationRequest(string displayName);
 public record CreateApplicationResponse(string id, string appId);
 
 public record FederatedIdentityCredentialRequest(string name, string issuer, string subject, string[] audiences, string description);
+
+public record AppReportItem(string AppName, string RepositoryUrl, bool IsRegistered, bool SecretsAdded, string AzureAppClientId, DateTimeOffset CreatedAt, string Age, int AgeDays);
+
+public record AppReportResponse(IEnumerable<AppReportItem> Applications, int TotalCount, DateTimeOffset GeneratedAt);
