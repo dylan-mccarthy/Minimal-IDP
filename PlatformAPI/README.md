@@ -74,6 +74,7 @@ The API will be available at <http://localhost:5264>.
 - `POST /api/apps/{appName}/register` - Register in Entra ID
 - `POST /api/apps/{appName}/secrets` - Add GitHub repository secrets
 - `DELETE /api/apps/{appName}` - Delete an application
+- `GET /api/apps/report` - Generate a report of active applications and their age
 
 ## Detailed Documentation
 
